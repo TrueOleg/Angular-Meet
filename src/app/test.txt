@@ -1,0 +1,177 @@
+import {Component, AfterViewInit, OnInit} from '@angular/core';
+import '../vendor/jitsi/external_api.js';
+import {Socket} from 'ngx-socket-io';
+import {HttpClient, HttpParams} from '@angular/common/http';
+import {FormControl} from '@angular/forms';
+
+declare var JitsiMeetExternalAPI: any;
+declare var JitsiMeetJS: any;
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent implements AfterViewInit, OnInit {
+  title = 'app';
+  domain = 'conference.example.com';
+  options: any;
+  api: any;
+  api2: any;
+  invite: any;
+  user: any;
+  mode = 1;
+  roomIsExists = false;
+  room = {
+    name: 'ss'
+  };
+  roomName = new FormControl('');
+  email = new FormControl('');
+  password = new FormControl('');
+
+  constructor(
+    private socket: Socket,
+    private http: HttpClient
+  ) {
+  }
+
+  ngOnInit(): void {
+    console.log('AAAAAAA', JitsiMeetJS);
+    // this.socket.on('user2', (data) => {
+    //   console.log('data', data);
+    //   this.invite = data;
+    // });
+    this.roomName.valueChanges.subscribe(data => {
+      const params = new HttpParams().set('name', data);
+      this.http.get(`http://localhost:3000/api/test`, {params}).subscribe(res => {
+        console.log('res', res);
+        res ? this.roomIsExists = true : this.roomIsExists = false;
+
+      });
+    });
+  }
+
+  ngAfterViewInit(): void {
+
+    // const options = {
+    //   roomName: this.room.name,
+    //
+    //   width: 700,
+    //   height: 700,
+    //   parentNode: document.querySelector('#meet')
+    // };
+    //
+    //
+    // this.api = new JitsiMeetExternalAPI(this.domain, options);
+    // console.log('api', this.api);
+    // this.api.addEventListener('readyToClose', () => {
+    //   console.log('aaaaaaa');
+    //   // const num = this.api.getNumberOfParticipants();
+    //   // if (num === 1) {
+    //   //   console.log('delete');
+    //   //   const params = new HttpParams().set('name', this.room.name);
+    //   //   this.http.delete('http://localhost:3000/api/test', {params}).subscribe(res => {
+    //   //
+    //   //   });
+    //   // } else {
+    //   //   console.log('not now');
+    //   // }
+    //   this.api = undefined;
+    // });
+  }
+
+  switch(num) {
+    this.mode = num;
+  }
+
+  login() {
+    this.http.post<any>(`http://localhost:3000/api/auth/login`, {email: this.email.value, password: this.password.value}).subscribe(res => {
+      console.log('res', res);
+      this.user = {
+        name: res.user.firstName,
+        id: res.user._id
+      };
+      this.socket.on(`user-${this.user.id}`, (data) => {
+        console.log('data', data);
+        this.invite = data;
+      });
+    });
+  }
+
+  logout() {
+    this.user = null;
+    this.socket.disconnect();
+  }
+
+  create() {
+    console.log('ggggggg', this.roomName);
+    this.http.post('http://localhost:3000/api/test', {room: this.roomName.value}).subscribe((res: any) => {
+      console.log('res', res);
+      const options = {
+        roomName: res.name,
+
+        width: 700,
+        height: 700,
+        parentNode: document.querySelector('#meet')
+      };
+
+
+      this.api = new JitsiMeetExternalAPI(this.domain, options);
+      this.api.addEventListener('videoConferenceLeft', (e) => {
+        console.log('aaaaaaa', e);
+      });
+    });
+
+  }
+
+
+  go() {
+    const options = {
+      roomName: this.invite.room,
+
+      width: 700,
+      height: 700,
+      parentNode: document.querySelector('#meet2')
+    };
+
+
+    this.api2 = new JitsiMeetExternalAPI(this.domain, options);
+  }
+}
+
+<div style="text-align:center">
+  <div class="header">
+    <h1>
+      Welcome to {{title}}!
+    </h1>
+    <div class="login">
+      <input *ngIf="!user" [formControl]="email" type="text">
+      <input *ngIf="!user" [formControl]="password" type="text">
+      <button *ngIf="!user" (click)="login()">Login</button>
+      <div *ngIf="user">{{user.name}}</div>
+      <div *ngIf="user">{{user.id}}</div>
+      <button *ngIf="user" (click)="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div id="meet"></div>
+  <div class="conf-cont">
+    <div class="conf-cont-header">
+      <div class="conf-cont-tab" (click)="switch(1)">Create conf</div>
+      <div class="conf-cont-tab" (click)="switch(2)">Invites</div>
+    </div>
+    <div class="conf-cont-body">
+      <div *ngIf="mode == 1" class="conf-cont-create">
+        <div>Enter conf name</div>
+        <input [formControl]="roomName">
+        <button (click)="!roomIsExists ? create() : null">{{roomIsExists ? 'Enter another name' : 'Create'}}</button>
+      </div>
+
+    </div>
+  </div>
+
+  <button *ngIf="invite" (click)="go()">Go</button>
+</div>
+
+
+

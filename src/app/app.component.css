@@ -1,0 +1,28 @@
+.header {
+  display: flex;
+  justify-content: space-around;
+}
+
+.login {
+  display: flex;
+  flex-direction: column;
+}
+
+.conf-cont {
+  width: 40%;
+  margin: 0 auto;
+}
+
+.conf-cont-header {
+  display: flex;
+  justify-content: space-around;
+}
+
+.conf-cont-tab {
+  cursor: pointer;
+}
+
+.conf-cont-create {
+  display: flex;
+  flex-direction: column;
+}
